@@ -1,0 +1,3 @@
+C:/Projects/C++/WdPRAW/cmake-build-debug/CMakeFiles/WdPRAW.dir
+C:/Projects/C++/WdPRAW/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Projects/C++/WdPRAW/cmake-build-debug/CMakeFiles/rebuild_cache.dir
