@@ -1,47 +1,23 @@
-#include <chrono>
 #include <iostream>
 #include <random>
 #include <iomanip>
+#include <omp.h>
+
+// Liczbę wątków należy ustawić przez zmienną środowiskową:
+// export OMP_NUM_THREADS=X
 
 // Tutaj można zmienić rozmiar macierzy
-#define N 8000
-#define M 10000
+// Wykonanie programu sekwencyjnego na serwerze z tymi danymi powinno trwać +5 minut
+#define N 100000
+#define M 120000
 
-void printInTableFormat(int** matrix, const int* vector, const int* result) {
-    constexpr auto maxRows = std::max(N, M);
-    for (int i = 0; i < maxRows; i++) {
-        if (i < N) {
-            std::cout << "Row " << std::setw(2) << i << ": ";
-            for (int j = 0; j < M; j++) {
-                std::cout << std::setw(4) << matrix[i][j];
-            }
-        } else {
-            std::cout << "         ";
-            for (int j = 0; j < M; j++) {
-                std::cout << "    ";
-            }
-        }
+int* multiplyMatrixByVectorParallel(int** matrix, const int* vector) {
+    int* result = new int[N];
 
-        std::cout << "  |  ";
-        if (i < M) {
-            std::cout << std::setw(4) << vector[i];
-        } else {
-            std::cout << "    ";
-        }
-
-        std::cout << "  |  ";
-        if (i < N) {
-            std::cout << std::setw(4) << result[i];
-        }
-
-        std::cout << std::endl;
-    }
-}
-
-int* multiplyMatricesPerVector(int** matrix, const int* vector) {
-    auto* result = new int[N];
-
+    // Równoległe wykonanie pętli przy użyciu dyrektywy OpenMP
+    #pragma omp parallel for
     for (int i = 0; i < N; i++) {
+        // Każdy wątek przetwarza osobny wiersz
         result[i] = 0;
         for (int j = 0; j < M; j++) {
             result[i] += matrix[i][j] * vector[j];
@@ -57,7 +33,7 @@ int main() {
     // Tutaj można zmienić zakres losowanych liczb
     std::uniform_int_distribution dis(-10, 10);
 
-    auto** matrix = new int*[N];
+    int** matrix = new int*[N];
     for (int i = 0; i < N; i++) {
         matrix[i] = new int[M];
         for (int j = 0; j < M; j++) {
@@ -65,30 +41,30 @@ int main() {
         }
     }
 
-    auto* vector = new int[M];
+    int* vector = new int[M];
     for (int i = 0; i < M; i++) {
         vector[i] = dis(gen);
     }
 
-    const auto start = std::chrono::high_resolution_clock::now();
+    // Zmienna przechowująca czas rozpoczęcia pomiaru przy pomocy funkcji OpenMP
+    double start_time = omp_get_wtime();
 
-    const auto* result = multiplyMatricesPerVector(matrix, vector);
+    int* result = multiplyMatrixByVectorParallel(matrix, vector);
 
-    const auto end = std::chrono::high_resolution_clock::now();
+    // Zmienna przechowująca czas zakończenia pomiaru przy pomocy funkcji OpenMP
+    double end_time = omp_get_wtime();
 
-    // printInTableFormat(matrix, vector, result);
+    std::cout << "\nExecution Time (OpenMP): " << (end_time - start_time) << " seconds\n";
 
-    std::cout << std::endl;
-    const auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    const auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    const auto duration_s  = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
-
-    std::cout << "\nExecution Time:\n";
-    std::cout << "-----------------------------\n";
-    std::cout << std::left << std::setw(15) << "Microseconds:" << duration_us << "\n";
-    std::cout << std::left << std::setw(15) << "Milliseconds:" << duration_ms << "\n";
-    std::cout << std::left << std::setw(15) << "Seconds:"      << duration_s  << "\n";
-    std::cout << "-----------------------------\n";
+    // Część kodu wyświetlająca liczbę użytych wątków
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            // Funkcja omp_get_num_threads() zwraca liczbę uruchomionych wątków
+            std::cout << "Threads used: " << omp_get_num_threads() << std::endl;
+        }
+    }
 
     for (int i = 0; i < N; i++) {
         delete[] matrix[i];
@@ -96,5 +72,6 @@ int main() {
     delete[] matrix;
     delete[] vector;
     delete[] result;
-}
 
+    return 0;
+}
