@@ -1,2 +1,8 @@
+/build
+.vscode/settings.json
+/tests
+data_generator
+a.out
+
 .idea/*
 cmake-build-debug/*
