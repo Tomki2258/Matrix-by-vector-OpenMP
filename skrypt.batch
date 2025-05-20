@@ -1,0 +1,31 @@
+#!/bin/bash -l
+#SBATCH -p hpc-short
+#SBATCH -N 1
+#SBATCH --exclusive
+#SBATCH -J large_8v
+#SBATCH -o plik_wyjscie.out
+#SBATCH -e plik_blad.out
+
+echo "Job started on $(date)" > summary_log_large_8v.txt
+echo "Running on node(s): $SLURM_NODELIST" >> summary_log_large_8v.txt
+echo "________________________________________________________" >> summary_log_large_8v.txt
+
+for threads in {1..24}; do
+    echo "Running with $threads thread(s)..." >> summary_log_large_8v.txt
+
+    OMP_NUM_THREADS=$threads /usr/bin/time -v ./large_8v > program_output_large_8v.txt 2> temp_log_8v.txt
+
+    N=$(grep "Matrix" program_output_large_8v.txt | awk '{split($2,a,"x"); print a[1]}')
+    M=$(grep "Matrix" program_output_large_8v.txt | awk '{split($2,a,"x"); print a[2]}')
+
+    exec_time=$(grep "Execution Time (OpenMP)" program_output_large_8v.txt | awk -F ': ' '{print $2}')
+    threads_used=$(grep "Threads used" program_output_large_8v.txt | awk -F ': ' '{print $2}')
+
+    max_mem=$(grep "Maximum resident set size" temp_log_8v.txt | awk -F': ' '{print $2}')
+    cpu_percent=$(grep "Percent of CPU this job got" temp_log_8v.txt | awk -F': ' '{print $2}')
+
+    echo "Matrix size: $N x $M | Threads: $threads_used | Execution time: $exec_time | Max Mem: ${max_mem} KB | CPU: $cpu_percent" >> summary_log_large_8v.txt
+    echo "________________________________________________________" >> summary_log_large_8v.txt
+done
+
+rm temp_log_8v.txt program_output_large_8v.txt
