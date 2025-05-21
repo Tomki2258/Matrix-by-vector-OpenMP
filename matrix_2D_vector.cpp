@@ -1,13 +1,23 @@
 #include <iostream>
 #include <random>
 #include <vector>
+#include <cmath>
 #include "omp.h"
 
 int main() {
-    constexpr int N = 600'000;
-    constexpr int M = 400'000;
+    constexpr int N = 100'000;
+    constexpr int M = 145'000;
 
-    std::vector<std::vector<long long>> matrix(N, std::vector<long long>(M));
+    std::vector<std::vector<long long>> matrix;
+    try {
+        matrix.reserve(N);
+        for (int i = 0; i < N; ++i) {
+            matrix.emplace_back(std::vector<long long>(M));
+        }
+    } catch (const std::bad_alloc& e) {
+        std::cerr << "Manual allocation failed: " << e.what() << std::endl;
+        return 1;
+    }
     std::vector<long long> vector(M);
     std::vector<long long> result(N);
 
@@ -38,7 +48,11 @@ int main() {
     for (int i = 0; i < N; i++) {
         long long sum = 0;
         for (int j = 0; j < M; j++) {
-            sum += matrix[i][j] * vector[j];
+            long long val = matrix[i][j] * vector[j];
+            double tmp = std::sin(static_cast<double>(val));
+            int int_val = static_cast<int>(tmp * 1000);
+
+            sum += int_val;
         }
         result[i] = sum;
     }
